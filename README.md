@@ -1,6 +1,6 @@
 # Akos Fabric
 
-Autonomous software engineering fabric for turning backlog, such as Jira, stories and defects into validated, review-ready code changes.
+Autonomous software engineering fabric for turning backlogs, such as Jira, stories and defects into validated, review-ready code changes.
 
 Akos Fabric provisions a disposable workspace for a real repository, then runs independent planning, coding, verification, and judging agents against the full codebase. Agents work with the repository, Git history, build system, tests, and Serena-powered semantic code intelligence—not extracted snippets or synthetic source context.
 
