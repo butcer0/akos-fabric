@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.akos-fabric.dev/agent-session-manifest-v1.schema.json",
+  "title": "Akos Fabric Agent Session Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repositorySessionId",
+    "repositoryProfile",
+    "profileRevisionSha",
+    "imageDigest",
+    "sourceControl",
+    "mainRepository",
+    "supplementalRepositories",
+    "llm",
+    "workItems",
+    "sessionBehavior",
+    "limits"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "repositorySessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "repositoryProfile": {
+      "$ref": "#/$defs/nonEmptyString"
+    },
+    "profileRevisionSha": {
+      "$ref": "#/$defs/gitSha"
+    },
+    "imageDigest": {
+      "$ref": "#/$defs/imageDigest"
+    },
+    "sourceControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "baseUrl"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "mainRepository": {
+      "$ref": "#/$defs/repository"
+    },
+    "supplementalRepositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/supplementalRepository"
+      }
+    },
+    "llm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "modelId",
+        "openHandsModel"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "openHandsModel": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "workItems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "workItemRunId",
+          "sequenceNumber",
+          "jiraKey",
+          "jiraUpdatedAt",
+          "jiraSnapshot"
+        ],
+        "properties": {
+          "workItemRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequenceNumber": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "jiraKey": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]*-[1-9][0-9]*$"
+          },
+          "jiraUpdatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "jiraSnapshot": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "sessionBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "continueAfterItemFailure"
+      ],
+      "properties": {
+        "continueAfterItemFailure": {
+          "type": "boolean"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionDeadlineSeconds",
+        "maximumItems",
+        "maximumCostUsdPerItem",
+        "maximumChangedFiles",
+        "maximumDiffLines",
+        "maximumCoderConversations",
+        "maximumModelCallsPerRole"
+      ],
+      "properties": {
+        "sessionDeadlineSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumItems": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumCostUsdPerItem": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximumChangedFiles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumDiffLines": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumCoderConversations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "maximumModelCallsPerRole": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$"
+    },
+    "imageDigest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerRepositoryId",
+        "cloneUrl",
+        "defaultBranch",
+        "cloneStrategy",
+        "gitLfs",
+        "submodules"
+      ],
+      "properties": {
+        "providerRepositoryId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "defaultBranch": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneStrategy": {
+          "const": "full"
+        },
+        "gitLfs": {
+          "type": "boolean"
+        },
+        "submodules": {
+          "enum": [
+            "none",
+            "recursive"
+          ]
+        }
+      }
+    },
+    "supplementalRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerRepositoryId",
+        "cloneUrl",
+        "defaultBranch",
+        "cloneStrategy",
+        "gitLfs",
+        "submodules",
+        "writable"
+      ],
+      "properties": {
+        "providerRepositoryId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "defaultBranch": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneStrategy": {
+          "const": "full"
+        },
+        "gitLfs": {
+          "type": "boolean"
+        },
+        "submodules": {
+          "enum": [
+            "none",
+            "recursive"
+          ]
+        },
+        "writable": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

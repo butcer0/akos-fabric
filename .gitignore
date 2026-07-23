@@ -1,0 +1,38 @@
+docs-private/
+
+# .NET build output
+**/bin/
+**/obj/
+TestResults/
+artifacts/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.tools/
+
+# Local runtime state and secrets
+.env
+.env.*
+!.env.example
+*.user
+*.suo
+*.pfx
+*.key
+secrets/
+.aspnet/
+agent-sessions/
+.local/
+
+# IDE and OS
+.vs/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+/agent-runtime/.tmp-*/

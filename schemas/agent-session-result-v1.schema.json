@@ -1,0 +1,693 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.akos-fabric.dev/agent-session-result-v1.schema.json",
+  "title": "Akos Fabric Agent Session Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "repositorySessionId",
+    "status",
+    "startedAt",
+    "completedAt",
+    "repository",
+    "llm",
+    "items"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "repositorySessionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed"
+      ]
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "failureCode": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "failureMessage": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "providerRepositoryId",
+        "cloneUrl"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "providerRepositoryId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "modelId"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/workItemResult"
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$"
+    },
+    "workItemResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workItemRunId",
+        "jiraKey",
+        "status",
+        "changedFiles",
+        "modelUsage"
+      ],
+      "properties": {
+        "workItemRunId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "jiraKey": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*-[1-9][0-9]*$"
+        },
+        "status": {
+          "enum": [
+            "branch_pushed",
+            "blocked",
+            "failed"
+          ]
+        },
+        "baseCommitSha": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/gitSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "branchName": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidateCommitSha": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/gitSha"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "changedFiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/repositoryRelativePath"
+          },
+          "uniqueItems": true
+        },
+        "plan": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/plan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/candidate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "verification": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/verification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "judgment": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/judgment"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelUsage": {
+          "$ref": "#/$defs/modelUsage"
+        },
+        "failureCode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "failureMessage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "branch_pushed"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "baseCommitSha",
+              "branchName",
+              "candidateCommitSha",
+              "plan",
+              "candidate",
+              "verification",
+              "judgment"
+            ],
+            "properties": {
+              "baseCommitSha": {
+                "$ref": "#/$defs/gitSha"
+              },
+              "branchName": {
+                "$ref": "#/$defs/nonEmptyString"
+              },
+              "candidateCommitSha": {
+                "$ref": "#/$defs/gitSha"
+              },
+              "plan": {
+                "$ref": "#/$defs/plan"
+              },
+              "candidate": {
+                "$ref": "#/$defs/candidate"
+              },
+              "verification": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/verification"
+                  },
+                  {
+                    "properties": {
+                      "passed": {
+                        "const": true
+                      }
+                    }
+                  }
+                ]
+              },
+              "judgment": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/judgment"
+                  },
+                  {
+                    "properties": {
+                      "deterministic_verification_passed": {
+                        "const": true
+                      },
+                      "acceptance_criteria_satisfied": {
+                        "const": true
+                      },
+                      "disposition": {
+                        "const": "accept"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//).+$"
+    },
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "objective",
+        "source_findings",
+        "assumptions",
+        "files",
+        "implementation_steps",
+        "tests_to_add_or_change",
+        "verification",
+        "risks",
+        "blockers",
+        "confidence"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "objective": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "source_findings": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "assumptions": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/plannedFile"
+          }
+        },
+        "implementation_steps": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "tests_to_add_or_change": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/verificationIntent"
+          }
+        },
+        "risks": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "blockers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "plannedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "purpose",
+        "symbols"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "purpose": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "symbols": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    },
+    "verificationIntent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "rationale"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "rationale": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "summary",
+        "acceptance_criteria_evidence",
+        "tests_added_or_changed",
+        "additional_commands_run",
+        "known_risks",
+        "unresolved_questions",
+        "ready_for_verification"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "acceptance_criteria_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/criterionEvidence"
+          }
+        },
+        "tests_added_or_changed": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "additional_commands_run": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "known_risks": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "unresolved_questions": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "ready_for_verification": {
+          "type": "boolean"
+        }
+      }
+    },
+    "criterionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "criterion",
+        "evidence",
+        "paths"
+      ],
+      "properties": {
+        "criterion": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "evidence": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "paths": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "commands"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/commandVerification"
+          }
+        }
+      }
+    },
+    "commandVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "argv",
+        "exitCode",
+        "durationMs",
+        "timedOut",
+        "stdoutPath",
+        "stderrPath"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "argv": {
+          "$ref": "#/$defs/nonEmptyStringArray"
+        },
+        "exitCode": {
+          "type": "integer"
+        },
+        "durationMs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timedOut": {
+          "type": "boolean"
+        },
+        "stdoutPath": {
+          "type": "string"
+        },
+        "stderrPath": {
+          "type": "string"
+        }
+      }
+    },
+    "judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "candidate_sha",
+        "deterministic_verification_passed",
+        "acceptance_criteria_satisfied",
+        "findings",
+        "disposition",
+        "summary"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0"
+        },
+        "candidate_sha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "deterministic_verification_passed": {
+          "type": "boolean"
+        },
+        "acceptance_criteria_satisfied": {
+          "type": "boolean"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/judgeFinding"
+          }
+        },
+        "disposition": {
+          "enum": [
+            "accept",
+            "revise",
+            "blocked"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/nonEmptyString"
+        }
+      }
+    },
+    "judgeFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "severity",
+        "category",
+        "path",
+        "line",
+        "explanation",
+        "required_change"
+      ],
+      "properties": {
+        "severity": {
+          "enum": [
+            "blocking",
+            "major",
+            "minor",
+            "informational"
+          ]
+        },
+        "category": {
+          "enum": [
+            "correctness",
+            "acceptance_criteria",
+            "testing",
+            "maintainability",
+            "performance",
+            "security",
+            "standards"
+          ]
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "line": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "explanation": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "required_change": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "roleModelUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "modelCalls",
+        "estimatedCostUsd"
+      ],
+      "properties": {
+        "inputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outputTokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "modelCalls": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimatedCostUsd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "modelUsage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "modelId",
+        "planner",
+        "coder",
+        "judge",
+        "totalEstimatedCostUsd"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "planner": {
+          "$ref": "#/$defs/roleModelUsage"
+        },
+        "coder": {
+          "$ref": "#/$defs/roleModelUsage"
+        },
+        "judge": {
+          "$ref": "#/$defs/roleModelUsage"
+        },
+        "totalEstimatedCostUsd": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: Akos Fabric
+    orgId: 1
+    folder: Akos Fabric
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: false
+    options:
+      path: /otel-lgtm/grafana/dashboards/akos-fabric
+      foldersFromFilesStructure: false

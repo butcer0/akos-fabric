@@ -1,0 +1,75 @@
+# syntax=docker/dockerfile:1.7
+
+ARG RUNTIME_IMAGE=akos-fabric/repository-agent:development@sha256:e1b7bf12fa30ea9e6e07932802aff40d7ad308123fa00db47a74f6cb7445ceaf
+FROM ${RUNTIME_IMAGE} AS dependencies
+
+USER root
+RUN install --directory --owner=10001 --group=10001 \
+      /workspace/compat-agent-venv \
+      /workspace/repository
+
+WORKDIR /workspace/repository
+COPY --chown=10001:10001 \
+  AkosFabric.slnx \
+  Directory.Build.props \
+  Directory.Packages.props \
+  global.json \
+  ./
+COPY --chown=10001:10001 src/AkosFabric.Api/*.csproj src/AkosFabric.Api/packages.lock.json src/AkosFabric.Api/
+COPY --chown=10001:10001 src/AkosFabric.Application/*.csproj src/AkosFabric.Application/packages.lock.json src/AkosFabric.Application/
+COPY --chown=10001:10001 src/AkosFabric.Domain/*.csproj src/AkosFabric.Domain/packages.lock.json src/AkosFabric.Domain/
+COPY --chown=10001:10001 src/AkosFabric.Identity/*.csproj src/AkosFabric.Identity/packages.lock.json src/AkosFabric.Identity/
+COPY --chown=10001:10001 src/AkosFabric.Infrastructure/*.csproj src/AkosFabric.Infrastructure/packages.lock.json src/AkosFabric.Infrastructure/
+COPY --chown=10001:10001 tests/AkosFabric.UnitTests/*.csproj tests/AkosFabric.UnitTests/packages.lock.json tests/AkosFabric.UnitTests/
+COPY --chown=10001:10001 tests/AkosFabric.IntegrationTests/*.csproj tests/AkosFabric.IntegrationTests/packages.lock.json tests/AkosFabric.IntegrationTests/
+COPY --chown=10001:10001 agent-runtime/pyproject.toml agent-runtime/uv.lock agent-runtime/
+COPY --chown=10001:10001 deploy/repository-agent/compatibility-fixture/ /workspace/serena-fixture/
+
+USER 10001:10001
+RUN dotnet restore AkosFabric.slnx --locked-mode \
+    && UV_PROJECT_ENVIRONMENT=/workspace/compat-agent-venv \
+       UV_CACHE_DIR=/cache/uv \
+       uv sync \
+       --project agent-runtime \
+       --frozen \
+       --extra dev \
+       --extra openhands \
+       --no-install-project \
+    && /opt/serena-runtime/.venv/bin/serena \
+       project index \
+       /workspace/serena-fixture
+
+FROM dependencies AS verification
+
+USER root
+COPY --chown=10001:10001 src/ src/
+COPY --chown=10001:10001 tests/ tests/
+COPY --chown=10001:10001 agent-runtime/agent_runtime/ agent-runtime/agent_runtime/
+COPY --chown=10001:10001 agent-runtime/tests/ agent-runtime/tests/
+COPY --chown=10001:10001 .github/ .github/
+COPY --chown=10001:10001 schemas/ schemas/
+COPY --chown=10001:10001 repository-profiles/ repository-profiles/
+COPY --chown=10001:10001 repository-profiles/akos-fabric.serena-project.yml .serena/project.yml
+COPY --chown=10001:10001 scripts/compatibility/probe_serena_mcp.py /workspace/probe_serena_mcp.py
+USER 10001:10001
+
+RUN --network=none dotnet build AkosFabric.slnx --no-restore \
+    && dotnet test \
+       AkosFabric.slnx \
+       --no-build \
+       --no-restore \
+       --filter "FullyQualifiedName!~PostgresLedgerTests&FullyQualifiedName!~PostgreSqlProbeExecutesNonMutatingReadinessQuery" \
+    && PYTHONPATH=/workspace/repository/agent-runtime \
+       /workspace/compat-agent-venv/bin/python \
+       -m pytest \
+       -q \
+       agent-runtime/tests \
+    && /opt/serena-runtime/.venv/bin/serena \
+       project index \
+       /workspace/repository \
+    && /opt/serena-runtime/.venv/bin/python \
+       /workspace/probe_serena_mcp.py \
+       --project /workspace/repository \
+       --source-file src/AkosFabric.Domain/RepositorySessions/RepositorySession.cs
+
+CMD ["true"]

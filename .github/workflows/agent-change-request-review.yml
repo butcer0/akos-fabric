@@ -1,0 +1,121 @@
+name: Agent Change Request Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # Fail-closed until Section 35 produces and an operator configures the exact
+  # immutable digest in the repository variable AKOS_CI_REVIEW_IMAGE.
+  REVIEW_IMAGE: ${{ vars.AKOS_CI_REVIEW_IMAGE || 'registry.invalid/akos-fabric/repository-agent@sha256:0000000000000000000000000000000000000000000000000000000000000000' }}
+
+jobs:
+  image-gate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, agent-ci]
+    steps:
+      - name: Require compatibility-gated immutable reviewer image
+        shell: bash
+        run: |
+          if [[ "$REVIEW_IMAGE" == *"sha256:0000000000000000000000000000000000000000000000000000000000000000" ]]; then
+            echo "::error::AKOS_CI_REVIEW_IMAGE is not configured. Complete the Section 35 image gate and set the exact image@sha256:digest repository variable."
+            exit 1
+          fi
+          if [[ ! "$REVIEW_IMAGE" =~ @sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::AKOS_CI_REVIEW_IMAGE must be an immutable image reference ending in @sha256:<64 lowercase hex characters>."
+            exit 1
+          fi
+
+  deterministic-validation:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, linux, agent-ci]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - run: dotnet restore AkosFabric.slnx --locked-mode
+      - run: uv sync --project agent-runtime --frozen --extra dev
+      - run: dotnet build AkosFabric.slnx --no-restore
+      - run: >
+          dotnet test AkosFabric.slnx --no-build
+          --filter "FullyQualifiedName!~PostgresLedgerTests&FullyQualifiedName!~PostgreSqlProbeExecutesNonMutatingReadinessQuery"
+      - run: >
+          uv run --project agent-runtime --frozen --extra dev --no-sync
+          pytest -q -p no:cacheprovider
+
+  informational-ai-review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    needs: [image-gate, deterministic-validation]
+    runs-on: [self-hosted, linux, agent-ci]
+    permissions:
+      contents: read
+      pull-requests: write
+    container:
+      image: ${{ vars.AKOS_CI_REVIEW_IMAGE || 'registry.invalid/akos-fabric/repository-agent@sha256:0000000000000000000000000000000000000000000000000000000000000000' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reproduce deterministic evidence in the pinned agent image
+        run: >
+          python -m agent_runtime.ci_validation
+          --repository "$GITHUB_WORKSPACE"
+          --profile /opt/repository-profile/profile.yml
+          --result /tmp/deterministic-validation.json
+          --logs /tmp/deterministic-validation-logs
+
+      - name: Capture change-request requirements
+        env:
+          CHANGE_REQUEST_BODY: ${{ github.event.pull_request.body }}
+        run: >
+          python -c "import os,pathlib;
+          pathlib.Path('/tmp/change-request-requirements.txt').write_text(
+          os.environ.get('CHANGE_REQUEST_BODY', ''), encoding='utf-8')"
+
+      - name: Normalize GitHub context
+        run: >
+          python -m agent_runtime.github_review_glue normalize
+          --repository-id "${{ github.repository }}"
+          --change-request-id "${{ github.event.pull_request.number }}"
+          --revision "${{ github.event.pull_request.head.sha }}"
+          --base-revision "${{ github.event.pull_request.base.sha }}"
+          --requirements-file /tmp/change-request-requirements.txt
+          --deterministic-result /tmp/deterministic-validation.json
+          --output /tmp/ci-review-manifest.json
+
+      - name: Run informational AI review
+        env:
+          AKOS_CI_REVIEW_MANIFEST: /tmp/ci-review-manifest.json
+          LLM_PROVIDER: gemini
+          LLM_MODEL: gemini/gemini-3.6-flash
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: >
+          python -m agent_runtime.ci_review
+          --repository "$GITHUB_WORKSPACE"
+          --revision "${{ github.event.pull_request.head.sha }}"
+          --result /tmp/review.json
+          --markdown /tmp/review.md
+
+      - name: Publish or update one informational review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          python -m agent_runtime.github_review_glue publish
+          --artifact /tmp/review.json
+          --markdown /tmp/review.md
+          --repository-id "${{ github.repository }}"
+          --change-request-id "${{ github.event.pull_request.number }}"
+          --revision "${{ github.event.pull_request.head.sha }}"

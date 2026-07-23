@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+.pytest_cache
+.test-venv
+.local
+.tools
+agent-sessions
+**/.venv
+**/.tmp-*
+**/__pycache__
+**/bin
+**/obj
+**/TestResults
+docs-private
+deploy/development
+deploy/synthetic-agent

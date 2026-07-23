@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+README.md
+example-manifest.json
+test_synthetic_agent.py

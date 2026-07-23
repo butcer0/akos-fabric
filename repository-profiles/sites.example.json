@@ -1,0 +1,11 @@
+{
+  "Jira": {
+    "Sites": {
+      "default": {
+        "BaseUrl": "https://polaris-breach.atlassian.net",
+        "AuthenticationProfile": "akos-fabric-jira"
+      }
+    },
+    "PollingIntervalSeconds": 300
+  }
+}

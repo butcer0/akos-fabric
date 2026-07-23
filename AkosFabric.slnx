@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AkosFabric.Api/AkosFabric.Api.csproj" />
+    <Project Path="src/AkosFabric.Application/AkosFabric.Application.csproj" />
+    <Project Path="src/AkosFabric.Domain/AkosFabric.Domain.csproj" />
+    <Project Path="src/AkosFabric.Identity/AkosFabric.Identity.csproj" />
+    <Project Path="src/AkosFabric.Infrastructure/AkosFabric.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AkosFabric.IntegrationTests/AkosFabric.IntegrationTests.csproj" />
+    <Project Path="tests/AkosFabric.UnitTests/AkosFabric.UnitTests.csproj" />
+  </Folder>
+</Solution>

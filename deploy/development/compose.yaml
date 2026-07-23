@@ -1,0 +1,84 @@
+name: akos-fabric-development
+
+services:
+  postgres:
+    image: postgres:18.4-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AKOS_POSTGRES_DB:?Set AKOS_POSTGRES_DB in deploy/development/.env}
+      POSTGRES_USER: ${AKOS_POSTGRES_USER:?Set AKOS_POSTGRES_USER in deploy/development/.env}
+      POSTGRES_PASSWORD: ${AKOS_POSTGRES_PASSWORD:?Set AKOS_POSTGRES_PASSWORD in deploy/development/.env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1:${AKOS_POSTGRES_PORT:?Set AKOS_POSTGRES_PORT in deploy/development/.env}:5432"
+    volumes:
+      # PostgreSQL 18 stores data below a major-version-specific directory.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready --username \"$${POSTGRES_USER}\" --dbname \"$${POSTGRES_DB}\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    stop_grace_period: 30s
+    networks:
+      - supporting-services
+
+  rabbitmq:
+    image: rabbitmq:4.3.2-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${AKOS_RABBITMQ_USER:?Set AKOS_RABBITMQ_USER in deploy/development/.env}
+      RABBITMQ_DEFAULT_PASS: ${AKOS_RABBITMQ_PASSWORD:?Set AKOS_RABBITMQ_PASSWORD in deploy/development/.env}
+    ports:
+      - "127.0.0.1:${AKOS_RABBITMQ_AMQP_PORT:?Set AKOS_RABBITMQ_AMQP_PORT in deploy/development/.env}:5672"
+      - "127.0.0.1:${AKOS_RABBITMQ_MANAGEMENT_PORT:?Set AKOS_RABBITMQ_MANAGEMENT_PORT in deploy/development/.env}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    stop_grace_period: 30s
+    networks:
+      - supporting-services
+
+  otel-lgtm:
+    image: grafana/otel-lgtm:0.27.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${AKOS_GRAFANA_ADMIN_USER:?Set AKOS_GRAFANA_ADMIN_USER in deploy/development/.env}
+      GF_SECURITY_ADMIN_PASSWORD: ${AKOS_GRAFANA_ADMIN_PASSWORD:?Set AKOS_GRAFANA_ADMIN_PASSWORD in deploy/development/.env}
+      LGTM_SHUTDOWN_TIMEOUT_SECONDS: "20"
+    ports:
+      - "127.0.0.1:${AKOS_GRAFANA_PORT:?Set AKOS_GRAFANA_PORT in deploy/development/.env}:3000"
+      - "127.0.0.1:${AKOS_OTLP_GRPC_PORT:?Set AKOS_OTLP_GRPC_PORT in deploy/development/.env}:4317"
+      - "127.0.0.1:${AKOS_OTLP_HTTP_PORT:?Set AKOS_OTLP_HTTP_PORT in deploy/development/.env}:4318"
+    volumes:
+      - lgtm-data:/data
+      - ./grafana/provisioning/dashboards/akos-fabric.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/akos-fabric.yaml:ro
+      - ./grafana/dashboards:/otel-lgtm/grafana/dashboards/akos-fabric:ro
+    healthcheck:
+      test: ["CMD", "/otel-lgtm/docker/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    stop_grace_period: 30s
+    networks:
+      - supporting-services
+
+networks:
+  supporting-services:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
+  lgtm-data:

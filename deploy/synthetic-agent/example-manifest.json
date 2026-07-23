@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "repositorySessionId": "11111111-1111-4111-8111-111111111111",
+  "repositoryProfile": "synthetic-example",
+  "profileRevisionSha": "0000000000000000000000000000000000000000",
+  "imageDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "sourceControl": {
+    "provider": "synthetic",
+    "baseUrl": "https://example.invalid"
+  },
+  "mainRepository": {
+    "providerRepositoryId": "synthetic/repository",
+    "cloneUrl": "https://example.invalid/repository.git",
+    "defaultBranch": "main",
+    "cloneStrategy": "full",
+    "gitLfs": false,
+    "submodules": "none"
+  },
+  "supplementalRepositories": [],
+  "llm": {
+    "provider": "synthetic",
+    "modelId": "synthetic",
+    "openHandsModel": "synthetic/synthetic"
+  },
+  "workItems": [
+    {
+      "workItemRunId": "22222222-2222-4222-8222-222222222222",
+      "sequenceNumber": 1,
+      "jiraKey": "SYN-1",
+      "jiraUpdatedAt": "2026-07-23T12:00:00Z",
+      "jiraSnapshot": {}
+    }
+  ],
+  "sessionBehavior": {
+    "continueAfterItemFailure": true
+  },
+  "limits": {
+    "sessionDeadlineSeconds": 300,
+    "maximumItems": 1,
+    "maximumCostUsdPerItem": 1,
+    "maximumChangedFiles": 10,
+    "maximumDiffLines": 100,
+    "maximumCoderConversations": 1,
+    "maximumModelCallsPerRole": 1
+  }
+}

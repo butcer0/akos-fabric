@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.akos-fabric.dev/repository-profile-v1.schema.json",
+  "title": "Akos Fabric Repository Profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "jira",
+    "sourceControl",
+    "repository",
+    "supplementalRepositories",
+    "llm",
+    "image",
+    "languages",
+    "serena",
+    "session",
+    "item",
+    "bootstrap",
+    "verification",
+    "ci"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "jira": {
+      "$ref": "#/$defs/jira"
+    },
+    "sourceControl": {
+      "$ref": "#/$defs/sourceControl"
+    },
+    "repository": {
+      "$ref": "#/$defs/repository"
+    },
+    "supplementalRepositories": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/supplementalRepository"
+      }
+    },
+    "llm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "modelId",
+        "openHandsModel",
+        "credentialProfile"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/identifier"
+        },
+        "modelId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "openHandsModel": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "credentialProfile": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference",
+        "expectedDigest"
+      ],
+      "properties": {
+        "reference": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "expectedDigest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/identifier"
+      }
+    },
+    "serena": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context",
+        "projectConfiguration"
+      ],
+      "properties": {
+        "context": {
+          "const": "ide"
+        },
+        "projectConfiguration": {
+          "type": "string",
+          "pattern": "^/opt/repository-profile/"
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxItems",
+        "maxDurationMinutes",
+        "continueAfterItemFailure"
+      ],
+      "properties": {
+        "maxItems": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxDurationMinutes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "continueAfterItemFailure": {
+          "type": "boolean"
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumCoderConversations",
+        "maximumModelCallsPerRole",
+        "maximumCostUsd",
+        "maximumChangedFiles",
+        "maximumDiffLines"
+      ],
+      "properties": {
+        "maximumCoderConversations": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumModelCallsPerRole": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumCostUsd": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "maximumChangedFiles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximumDiffLines": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "bootstrap": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/processCommand"
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/processCommand"
+          }
+        }
+      }
+    },
+    "ci": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "reviewCommand"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/identifier"
+        },
+        "reviewCommand": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "argv"
+          ],
+          "properties": {
+            "argv": {
+              "$ref": "#/$defs/argv"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "argv": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "processCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "argv",
+        "timeoutSeconds"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/identifier"
+        },
+        "argv": {
+          "$ref": "#/$defs/argv"
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "sourceControl": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "baseUrl",
+        "authenticationProfile"
+      ],
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/identifier"
+        },
+        "baseUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "authenticationProfile": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerRepositoryId",
+        "cloneUrl",
+        "defaultBranch",
+        "cloneStrategy",
+        "gitLfs",
+        "submodules"
+      ],
+      "properties": {
+        "providerRepositoryId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "defaultBranch": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneStrategy": {
+          "const": "full"
+        },
+        "gitLfs": {
+          "type": "boolean"
+        },
+        "submodules": {
+          "enum": [
+            "none",
+            "recursive"
+          ]
+        }
+      }
+    },
+    "supplementalRepository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "providerRepositoryId",
+        "cloneUrl",
+        "defaultBranch",
+        "cloneStrategy",
+        "gitLfs",
+        "submodules"
+      ],
+      "properties": {
+        "providerRepositoryId": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "defaultBranch": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "cloneStrategy": {
+          "const": "full"
+        },
+        "gitLfs": {
+          "type": "boolean"
+        },
+        "submodules": {
+          "enum": [
+            "none",
+            "recursive"
+          ]
+        },
+        "writable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "jira": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "site",
+        "projectKey",
+        "eligibleIssueTypes",
+        "selectionJql",
+        "fields",
+        "workflow"
+      ],
+      "properties": {
+        "site": {
+          "$ref": "#/$defs/identifier"
+        },
+        "projectKey": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "eligibleIssueTypes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "Story",
+              "Bug"
+            ]
+          }
+        },
+        "selectionJql": {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        "fields": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "key",
+            "summary",
+            "description",
+            "issueType",
+            "status",
+            "priority",
+            "labels",
+            "updated"
+          ],
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "key": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "summary": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "description": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "issueType": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "status": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "priority": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "labels": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "updated": {
+              "$ref": "#/$defs/nonEmptyString"
+            }
+          }
+        },
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "eligibleStatus",
+            "assignedStatus",
+            "reviewStatus",
+            "completedStatus",
+            "failedStatus",
+            "addOutcomeComment"
+          ],
+          "properties": {
+            "mode": {
+              "const": "default-zero-configuration"
+            },
+            "eligibleStatus": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "assignedStatus": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "reviewStatus": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "completedStatus": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "failedStatus": {
+              "$ref": "#/$defs/nonEmptyString"
+            },
+            "addOutcomeComment": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

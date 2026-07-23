@@ -1,0 +1,106 @@
+# Operational single-repository profile. Credentials remain external.
+schemaVersion: 1
+id: akos-fabric
+
+jira:
+  site: default
+  projectKey: KAN
+  eligibleIssueTypes: [Story, Bug]
+  selectionJql: >
+    project = KAN
+    AND issuetype IN (Story, Bug)
+    AND status = "To Do"
+    ORDER BY priority DESC, created ASC
+  fields:
+    id: id
+    key: key
+    summary: summary
+    description: description
+    issueType: issuetype
+    status: status
+    priority: priority
+    labels: labels
+    updated: updated
+  workflow:
+    mode: default-zero-configuration
+    eligibleStatus: To Do
+    assignedStatus: In Progress
+    reviewStatus: In Progress
+    completedStatus: Done
+    failedStatus: To Do
+    addOutcomeComment: true
+
+sourceControl:
+  provider: github
+  baseUrl: https://github.com
+  authenticationProfile: akos-fabric-source-control
+
+repository:
+  providerRepositoryId: butcer0/akos-fabric
+  cloneUrl: https://github.com/butcer0/akos-fabric.git
+  defaultBranch: main
+  cloneStrategy: full
+  gitLfs: false
+  submodules: none
+
+supplementalRepositories: []
+
+llm:
+  provider: gemini
+  modelId: gemini-3.6-flash
+  openHandsModel: gemini/gemini-3.6-flash
+  credentialProfile: gemini-development
+
+image:
+  reference: akos-fabric/repository-agent:development
+  expectedDigest: sha256:e1b7bf12fa30ea9e6e07932802aff40d7ad308123fa00db47a74f6cb7445ceaf
+
+languages:
+  - csharp
+  - python
+
+serena:
+  context: ide
+  projectConfiguration: /opt/repository-profile/serena-project.yml
+
+session:
+  maxItems: 5
+  maxDurationMinutes: 240
+  continueAfterItemFailure: true
+
+item:
+  maximumCoderConversations: 2
+  maximumModelCallsPerRole: 60
+  maximumCostUsd: 25
+  maximumChangedFiles: 30
+  maximumDiffLines: 3000
+
+bootstrap:
+  - name: dotnet-restore
+    argv: [dotnet, restore, AkosFabric.slnx, --locked-mode]
+    timeoutSeconds: 1200
+  - name: python-sync
+    argv: [uv, sync, --project, agent-runtime, --frozen, --extra, dev]
+    timeoutSeconds: 1200
+
+verification:
+  required:
+    - name: git-diff-check
+      argv: [git, diff, --check]
+      timeoutSeconds: 60
+    - name: dotnet-build
+      argv: [dotnet, build, AkosFabric.slnx, --no-restore]
+      timeoutSeconds: 1200
+    # Repository containers never receive a control-plane database credential.
+    # The live PostgreSQL suite is run by the host acceptance harness instead.
+    - name: dotnet-test
+      argv: [dotnet, test, AkosFabric.slnx, --no-build, --filter, "FullyQualifiedName!~PostgresLedgerTests&FullyQualifiedName!~PostgreSqlProbeExecutesNonMutatingReadinessQuery"]
+      timeoutSeconds: 1800
+    - name: python-test
+      argv: [uv, run, --project, agent-runtime, --frozen, --extra, dev, --no-sync, pytest, -q, -p, no:cacheprovider]
+      timeoutSeconds: 1200
+
+ci:
+  provider: github-actions
+  reviewCommand:
+    argv: [python, -m, agent_runtime.ci_review]

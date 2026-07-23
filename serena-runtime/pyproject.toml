@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling==1.31.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "akos-serena-runtime"
+version = "0.1.0"
+description = "Locked Serena MCP process environment for Akos Fabric"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "pyright==1.1.403",
+    "serena-agent==1.5.3",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = []
+
+[tool.uv]
+package = false

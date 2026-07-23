@@ -1,0 +1,53 @@
+# Execution-only profile baked into the repository-agent image.
+# The authoritative operational image reference and digest remain in the
+# external profile checkout, avoiding a self-referential image digest.
+schemaVersion: 1
+id: akos-fabric
+
+llm:
+  provider: gemini
+  modelId: gemini-3.6-flash
+  openHandsModel: gemini/gemini-3.6-flash
+
+languages:
+  - csharp
+  - python
+
+serena:
+  context: ide
+  projectConfiguration: /opt/repository-profile/serena-project.yml
+
+session:
+  maxItems: 5
+  maxDurationMinutes: 240
+  continueAfterItemFailure: true
+
+item:
+  maximumCoderConversations: 2
+  maximumModelCallsPerRole: 60
+  maximumCostUsd: 25
+  maximumChangedFiles: 30
+  maximumDiffLines: 3000
+
+bootstrap:
+  - name: dotnet-restore
+    argv: [dotnet, restore, AkosFabric.slnx, --locked-mode]
+    timeoutSeconds: 1200
+  - name: python-sync
+    argv: [uv, sync, --project, agent-runtime, --frozen, --extra, dev]
+    timeoutSeconds: 1200
+
+verification:
+  required:
+    - name: git-diff-check
+      argv: [git, diff, --check]
+      timeoutSeconds: 60
+    - name: dotnet-build
+      argv: [dotnet, build, AkosFabric.slnx, --no-restore]
+      timeoutSeconds: 1200
+    - name: dotnet-test
+      argv: [dotnet, test, AkosFabric.slnx, --no-build, --filter, "FullyQualifiedName!~PostgresLedgerTests&FullyQualifiedName!~PostgreSqlProbeExecutesNonMutatingReadinessQuery"]
+      timeoutSeconds: 1800
+    - name: python-test
+      argv: [uv, run, --project, agent-runtime, --frozen, --extra, dev, --no-sync, pytest, -q, -p, no:cacheprovider]
+      timeoutSeconds: 1200
